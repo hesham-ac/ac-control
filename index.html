@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AC Control</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <style>
+        body {
+            margin: 0;
+            height: 80vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        button {
+            width: 800px;
+            height: 750px;
+            font-size: 60px;
+            border-radius: 10px;
+            border: none;
+            background-color: #333;
+            color: white;
+            transition: background-color 0.3s;
+        }
+    </style>
+</head>
+
+<body>
+
+    <button onclick="toggle()" id="btn">OFF</button>
+
+    <script>
+        let isOn = false;
+        let offTimer = null;
+
+        const firebaseUrl = "https://accontroller-85b47-default-rtdb.firebaseio.com/command.json";
+
+        async function getCommand() {
+            const response = await fetch(firebaseUrl);
+            if (!response.ok) {
+                throw new Error("Failed to read Firebase");
+            }
+            return await response.json();
+        }
+
+        async function sendCommand(state) {
+            const response = await fetch(firebaseUrl, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(state)
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to write Firebase");
+            }
+        }
+
+        function updateButton() {
+            const btn = document.getElementById("btn");
+            btn.innerText = isOn ? "ON" : "OFF";
+            btn.style.backgroundColor = isOn ? "red" : "#333";
+        }
+
+        function clearOffTimer() {
+            if (offTimer !== null) {
+                clearTimeout(offTimer);
+                offTimer = null;
+            }
+        }
+
+        function startAutoOffTimer() {
+            clearOffTimer();
+
+            offTimer = setTimeout(async () => {
+                if (!isOn) return;
+
+                isOn = false;
+                updateButton();
+
+                try {
+                    await sendCommand("off");
+                } catch (error) {
+                    console.error(error);
+                }
+
+                offTimer = null;
+            }, 3600000);
+        }
+
+        async function toggle() {
+            try {
+                if (isOn) {
+                    isOn = false;
+                    clearOffTimer();
+                    updateButton();
+                    await sendCommand("off");
+                } else {
+                    isOn = true;
+                    updateButton();
+                    await sendCommand("on");
+                    startAutoOffTimer();
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        async function init() {
+            try {
+                const command = await getCommand();
+                isOn = (command === "on");
+                updateButton();
+
+                if (isOn) {
+                    startAutoOffTimer();
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        init();
+    </script>
+
+</body>
+</html>
