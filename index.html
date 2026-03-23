@@ -20,7 +20,7 @@
         button {
             width: 800px;
             height: 750px;
-            font-size: 20px;
+            font-size: 60px;
             border-radius: 10px;
             border: none;
             background-color: #333;
@@ -97,24 +97,7 @@
             }
         }
 
-        function startAutoOffTimer() {
-            clearOffTimer();
 
-            offTimer = setTimeout(async () => {
-                if (!isOn) return;
-
-                isOn = false;
-                updateButton();
-
-                try {
-                    await sendCommand("off", "auto-off");
-                } catch (error) {
-                    console.error(error);
-                }
-
-                offTimer = null;
-            }, 3600000);
-        }
 
         async function toggle() {
             try {
